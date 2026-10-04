@@ -2,7 +2,7 @@
   if (location.protocol !== "https:" || window !== window.top || !window.tiny || tiny.win.id !== "main") return;
   // Installed synchronously at document start, before any remote UI can paint.
   const gate = document.createElement("style");
-  gate.textContent = "body { visibility:hidden !important }";
+  gate.textContent = "html { background:#f7f5f1 !important; } body { visibility:hidden !important; } @media (prefers-color-scheme:dark) { html { background:#1b1a18 !important; } }";
   function installGate() { if (document.documentElement && !gate.isConnected) document.documentElement.append(gate); }
   installGate();
   if (!document.documentElement) {
@@ -32,7 +32,7 @@
     const target = new URL(url);
     if (target.origin === location.origin && authPath.test(target.pathname)) { sessionExpired(); return; }
     tiny.api.call("openBrowser", { url }).catch(() => {
-      console.warn("Discourse Chat Wrapper could not open the link in your browser.");
+      console.warn("Discourse Chat App could not open the link in your browser.");
     });
   }
 
@@ -83,15 +83,20 @@
     const root = host.attachShadow({ mode: "closed" });
     root.innerHTML = `
       <style>
-        :host { color-scheme: light dark; }
-        section { height:100%; display:grid; place-content:center; text-align:center;
-          background:Canvas; color:CanvasText; font:16px -apple-system,system-ui,sans-serif; }
-        h1 { font-size:24px; font-weight:600; }
-        p { opacity:.7; max-width:360px; line-height:1.5; padding:0 24px; }
-        button { font:inherit; padding:8px 16px; margin:4px; cursor:pointer; }
+        :host { color-scheme:light dark; --background:#f7f5f1; --text:#17212f; --muted:#626873; --accent:#2475ed; opacity:1; transition:opacity 180ms ease; }
+        section { box-sizing:border-box; min-height:100%; display:grid; place-content:center; justify-items:center; text-align:center; padding:32px 24px;
+          background:color-mix(in srgb, var(--background) 58%, transparent); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); color:var(--text); font:16px -apple-system,system-ui,sans-serif; }
+        h1 { font-size:24px; font-weight:600; letter-spacing:-.4px; margin:24px 0 12px; }
+        p { color:var(--muted); max-width:400px; line-height:1.55; margin:12px 0; }
+        button { font:inherit; padding:10px 16px; margin:4px; border:1px solid #8885; border-radius:10px; background:var(--background); color:var(--text); cursor:pointer; }
+        .pulse { width:24px; height:24px; border-radius:50%; background:var(--accent); animation:waiting-pulse 1.6s ease-in-out infinite; }
+        @keyframes waiting-pulse { 0%,100% { transform:scale(.85); opacity:.65; box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 22%, transparent); } 50% { transform:scale(1); opacity:1; box-shadow:0 0 0 14px transparent; } }
+        [hidden] { display:none !important; }
+        @media (prefers-color-scheme:dark) { :host { --background:#1b1a18; --text:#f2f1ee; --muted:#b8b6b2; --accent:#307df0; } }
+        @media (prefers-reduced-motion:reduce) { :host { transition:none; } .pulse { animation:none; } }
       </style>
-      <section aria-live="polite"><h1>Opening Discourse Chat Wrapper…</h1>
-        <p>Loading your workspace</p>
+      <section role="status" aria-live="polite"><span class="pulse" aria-hidden="true"></span><h1>Waiting for chat</h1>
+        <p></p>
         <div hidden><button id="retry">Retry</button><button id="home">Home</button></div>
       </section>`;
     document.documentElement.append(host);
@@ -99,11 +104,20 @@
       root.querySelector("p").textContent = "This is taking longer than usual. You can keep waiting or retry.";
       root.querySelector("div").hidden = false;
     }, 12000);
-    function dismiss() { clearTimeout(slow); host.remove(); }
+    let dismissed = false;
+    function dismiss() {
+      if (dismissed) return;
+      dismissed = true;
+      clearTimeout(slow);
+      host.style.opacity = "0";
+      setTimeout(() => host.remove(), 180);
+    }
     root.querySelector("#retry").onclick = () => location.reload();
     root.querySelector("#home").onclick = () => tiny.api.call("returnHome", {}).catch(() => {});
     window.__devChatLoadFailed = () => {
       clearTimeout(slow);
+      root.querySelector("h1").textContent = "Couldn’t open chat";
+      root.querySelector(".pulse").hidden = true;
       root.querySelector("p").textContent = "Couldn’t load chat. Check your connection and try again.";
       root.querySelector("div").hidden = false;
     };
@@ -214,7 +228,7 @@
     const titlebar = document.createElement("div");
     titlebar.id = "dev-chat-titlebar";
     titlebar.setAttribute("data-tiny-drag", "");
-    titlebar.textContent = "Discourse Chat Wrapper";
+    titlebar.textContent = "Discourse Chat App";
     document.body.prepend(titlebar);
 
     let observedSidebar;
@@ -310,7 +324,7 @@
               messageId: Number(data.chat_message_id),
               title: plainText(data.translated_title || `${data.username || "Someone"} sent a chat message`),
               body: plainText(data.excerpt), url: data.post_url,
-            }).catch(() => console.warn("Discourse Chat Wrapper could not deliver a desktop notification."));
+            }).catch(() => console.warn("Discourse Chat App could not deliver a desktop notification."));
           };
           // Subscribe alongside Discourse, rather than relying on its browser
           // Notification API or visibility-based active-channel suppression.

@@ -87,7 +87,7 @@ static bool chat_cookie_matches(NSHTTPCookie *cookie, NSString *host) {
 - (void)check {
   [self request:@"/session/current.json" method:@"GET" csrf:nil completion:^(NSData *data, NSHTTPURLResponse *response, NSError *error) {
     if (error) { [self finish:@"unavailable"]; return; }
-    if (response.statusCode == 401 || response.statusCode == 403) {
+    if (response.statusCode == 401 || response.statusCode == 403 || response.statusCode == 404) {
       if ([self.operation isEqualToString:@"logout"]) [self clearSiteCookies];
       else [self finish:@"expired"];
       return;

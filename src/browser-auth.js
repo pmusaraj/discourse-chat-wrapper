@@ -51,7 +51,7 @@ export function createBrowserAuth({ now = Date.now, request = (...args) => fetch
       key = payload.key;
       if (current() !== attempt) return null;
       const response = await post(attempt, "/user-api-key/otp.json", {
-        public_key: attempt.publicKey, application_name: "Discourse Chat Wrapper",
+        public_key: attempt.publicKey, application_name: "Discourse Chat App",
         auth_redirect: AUTH_REDIRECT, padding: "oaep",
       }, key);
       if (!response.ok) throw new Error("The site couldn’t create a chat session. Start browser sign-in again.");
@@ -95,7 +95,7 @@ export function createBrowserAuth({ now = Date.now, request = (...args) => fetch
       if (version !== generation) throw new Error("Login cancelled");
       pending = { site, privateKey: pair.privateKey, nonce, expires: now() + TTL, windowId, clientId, publicKey };
       const url = new URL("/user-api-key/new", site.origin);
-      url.search = new URLSearchParams({ application_name: "Discourse Chat Wrapper", client_id: clientId,
+      url.search = new URLSearchParams({ application_name: "Discourse Chat App", client_id: clientId,
         nonce, public_key: publicKey, scopes: "write", padding: "oaep" }).toString();
       const attempt = pending;
       const capability = await send(url.origin + "/user-api-key/new", { method: "HEAD" });

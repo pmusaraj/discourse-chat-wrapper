@@ -1,6 +1,6 @@
 {
-  "name": "Discourse Chat Wrapper",
-  "title": "Discourse Chat Wrapper",
+  "name": "Discourse Chat App",
+  "title": "Discourse Chat App",
   "id": "org.discourse.dev.chat.tinyjs.poc",
   "version": "0.2.0",
   "minTinyjsVersion": "0.42.3",

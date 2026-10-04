@@ -65,14 +65,14 @@ test("late session checks cannot open chat after returning Home", async () => {
   assert.equal(await selecting, false);
   assert.equal(app.scripts.length, 0);
 });
-test("successful logout removes the saved session and returns Home", async () => {
+test("successful logout retains the site for reauthentication and returns Home", async () => {
   const app = mockApp();
   await init(app);
   await api.selectSite({ address: caller.origin }, app, local);
   await onMenu("logout", app);
   await api.logoutResult({ success: true }, app, caller);
   assert.equal(app.homeCount, 1);
-  assert.deepEqual(app.values.get("sessionSites"), ["https://second.test"]);
+  assert.deepEqual(app.values.get("sessionSites"), [caller.origin, "https://second.test"]);
 });
 
 
@@ -157,5 +157,5 @@ test("Dev notification test works from Home after a five-second delay", async (t
   assert.equal(sent.length, 0);
   t.mock.timers.tick(5000);
   assert.equal(sent.length, 1);
-  assert.equal(sent[0].title, "Discourse Chat");
+  assert.equal(sent[0].title, "Discourse Chat App");
 });

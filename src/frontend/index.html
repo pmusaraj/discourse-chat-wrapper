@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Discourse Chat Wrapper</title>
+  <title>Discourse Chat App</title>
   <style>
     :root {
       color-scheme:light dark;
@@ -23,11 +23,11 @@
     * { box-sizing:border-box; }
     body { margin:0; min-height:100vh; padding:64px 24px 32px; display:grid; place-items:center; background:var(--background); color:var(--text); }
     header { position:fixed; inset:0 0 auto; height:40px; display:grid; place-items:center; user-select:none; font-size:12px; color:var(--muted); background:var(--background); z-index:1; }
-    main { width:min(560px, 100%); padding:40px; border:1px solid color-mix(in srgb, var(--border) 45%, transparent); border-radius:24px; background:var(--surface); box-shadow:var(--shadow); }
+    main { width:min(560px, 100%); }
+    .home-card { padding:40px; border:1px solid color-mix(in srgb, var(--border) 45%, transparent); border-radius:24px; background:var(--surface); box-shadow:var(--shadow); }
     h1 { font-size:28px; font-weight:650; line-height:1.2; letter-spacing:-.8px; margin:0; }
-    h2 { font-size:16px; font-weight:650; margin:0 0 12px; }
     p { line-height:1.55; color:var(--muted); }
-    #intro { margin:24px 0 32px; }
+    #intro { margin:0 0 24px; }
     label { display:block; font-size:14px; font-weight:600; margin:24px 0 8px; }
     input, textarea { width:100%; font:inherit; padding:12px 14px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--text); }
     textarea { resize:vertical; }
@@ -41,33 +41,46 @@
     #status { margin:20px 0 0; font-size:14px; }
     #status:empty { display:none; }
     #retry { margin-top:12px; }
-    #session-list { display:grid; gap:12px; }
+    #session-list { display:grid; gap:12px; margin:10px 0 16px; }
     .session { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px; border:1px solid var(--site-border); border-radius:14px; background:var(--site-background); }
     .session small { display:flex; align-items:center; gap:7px; color:var(--muted); font-size:13px; font-weight:400; margin-top:5px; }
     .session small::before { content:""; width:8px; height:8px; flex:none; border-radius:50%; background:var(--muted); opacity:.5; }
     .session small.is-active::before { background:var(--success); opacity:1; }
-    .brand { display:flex; align-items:center; gap:16px; }
+    .brand { display:flex; align-items:center; gap:16px; margin:0 8px 24px; }
     .logo { width:52px; height:52px; flex:none; display:block; }
     .session-identity { display:flex; align-items:center; gap:14px; min-width:0; }
     .site-logo { width:48px; height:48px; padding:6px; object-fit:contain; flex:none; border:1px solid var(--border); border-radius:12px; background:var(--surface); box-shadow:0 2px 5px #17212f05; }
     .session-label { min-width:0; font-weight:550; overflow-wrap:anywhere; }
     .open-site { display:grid; place-items:center; width:40px; height:40px; flex:none; padding:0; border:0; border-radius:50%; background:var(--accent); color:white; }
+    .login-site { flex:none; padding:9px 14px; font-weight:600; color:var(--accent); border-color:var(--site-border); }
     .open-site svg { width:21px; height:21px; }
     .open-site:disabled { cursor:default; }
-    details.collapsible { margin-top:28px; padding-top:16px; border-top:1px solid var(--border); }
-    summary { cursor:pointer; font-weight:600; padding:8px 0; }
-    summary::marker { font-size:.8em; }
+    #sessions:not([hidden]) + #add-site { margin-top:8px; padding-top:8px; border-top:1px solid var(--border); }
+    summary { display:flex; align-items:center; justify-content:space-between; gap:16px; cursor:pointer; font-weight:600; padding:12px 0; list-style:none; }
+    summary::-webkit-details-marker { display:none; }
+    summary::after { content:""; width:8px; height:8px; flex:none; margin-right:4px; border-right:1.7px solid currentColor; border-bottom:1.7px solid currentColor; transform:translateY(-2px) rotate(45deg); }
+    details[open] > summary::after { transform:translateY(2px) rotate(225deg); }
     details:not(.collapsible) > summary { display:none; }
     .hint { font-size:13px; }
     #device-code { padding:14px; border:1px solid var(--site-border); border-radius:10px; background:var(--site-background); color:var(--text); }
+    .loading-overlay { position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:32px 24px; overflow:auto; background:color-mix(in srgb, var(--background) 58%, transparent); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); }
+    .loading-content { width:min(400px, 100%); text-align:center; }
+    .loading-content h2 { margin:24px 0 12px; font-size:24px; font-weight:600; letter-spacing:-.4px; }
+    .loading-content p { margin:12px 0; }
+    .loading-content form { text-align:left; }
+    .loading-content #cancel-login { margin-top:20px; }
+    .loading-content textarea { max-height:180px; }
+    .pulse { display:block; width:24px; height:24px; margin:0 auto; border-radius:50%; background:var(--accent); animation:waiting-pulse 1.6s ease-in-out infinite; }
+    @keyframes waiting-pulse { 0%,100% { transform:scale(.85); opacity:.65; box-shadow:0 0 0 0 color-mix(in srgb, var(--accent) 22%, transparent); } 50% { transform:scale(1); opacity:1; box-shadow:0 0 0 14px transparent; } }
+    @media (prefers-reduced-motion:reduce) { .pulse { animation:none; } }
     @media (prefers-color-scheme:dark) {
       :root { --background:#1b1a18; --surface:#272624; --text:#f2f1ee; --muted:#b8b6b2; --border:#44423f; --site-background:#263346; --site-border:#3d5577; --accent:#307df0; --accent-hover:#428af5; --success:#65c884; --shadow:0 16px 48px -16px #0008; }
     }
     @media (max-width:480px) {
       body { padding:56px 16px 24px; }
-      main { padding:24px; border-radius:20px; }
+      .home-card { padding:24px; border-radius:20px; }
       h1 { font-size:24px; letter-spacing:-.6px; }
-      .brand { gap:12px; }
+      .brand { gap:12px; margin:0 4px 20px; }
       .logo { width:44px; height:44px; }
       .session { gap:10px; padding:12px; }
       .session-identity { gap:10px; }
@@ -77,27 +90,37 @@
   </style>
 </head>
 <body>
-  <header data-tiny-drag>Discourse Chat Wrapper</header>
-  <main>
+  <header id="title-bar" data-tiny-drag>Discourse Chat App</header>
+  <main id="home-content">
     <div class="brand">
       <img class="logo" src="logo.svg" alt="" width="48" height="48">
       <h1 id="heading">Chat on Discourse</h1>
     </div>
+    <div class="home-card">
     <p id="intro">Use Discourse Chat in this dedicated window. Supports multiple communities.</p>
-    <section id="sessions" aria-label="Saved sessions">
-      <h2>Your sites</h2>
+    <details id="sessions" class="collapsible" name="home-sections" hidden>
+      <summary>Your sites</summary>
       <div id="session-list"></div>
-    </section>
-    <details id="add-site" open>
-      <summary>Add a new chat site</summary>
+    </details>
+    <details id="add-site" class="collapsible" name="home-sections">
+      <summary>Add a new site</summary>
     <form id="picker">
       <label for="address">Discourse site address</label>
       <input id="address" type="text" inputmode="url" placeholder="community.example.com" autocomplete="url" autocapitalize="none" spellcheck="false" required>
       <button id="connect" type="submit">Authenticate</button>
-      <button id="cancel-login" type="button" hidden style="margin-top:12px">Cancel</button>
       <p class="hint">Use the site’s main HTTPS address. One site is open at a time.</p>
 
     </form>
+    </details>
+    <p id="status" role="status" aria-live="polite">Loading your preferences…</p>
+    <button id="retry" hidden>Retry</button>
+    </div>
+  </main>
+  <section id="loading-overlay" class="loading-overlay" role="dialog" aria-modal="true" aria-labelledby="loading-title" hidden>
+    <div class="loading-content">
+      <span class="pulse" aria-hidden="true"></span>
+      <h2 id="loading-title" tabindex="-1" role="status"></h2>
+      <p id="loading-detail"></p>
     <section id="device-login" hidden>
       <p>Enter this code in your browser to approve sign-in:</p>
       <p id="device-code" style="font: bold 24px monospace;user-select:all"></p>
@@ -107,10 +130,9 @@
       <textarea id="authorization-code" rows="3" autocomplete="off" autocapitalize="none" spellcheck="false" required></textarea>
       <button id="submit-code" type="submit" style="margin-top:12px">Continue to chat</button>
     </form>
-    </details>
-    <p id="status" role="status" aria-live="polite">Loading your preferences…</p>
-    <button id="retry" hidden>Retry</button>
-  </main>
+    <button id="cancel-login" type="button" hidden style="margin-top:12px">Cancel</button>
+    </div>
+  </section>
   <script src="picker.js"></script>
 </body>
 </html>

@@ -26,7 +26,7 @@ test("launch always stays on Home and checks saved sessions before enabling chat
   await state.timers[0].callback();
   assert.equal(state.destinations.length, 0);
   assert.equal(state.elements["add-site"].open, false);
-  assert.equal(state.elements.address.value, "https://community.test");
+  assert.equal(state.elements.address.value, "");
   const row = state.elements["session-list"].children[0];
   assert.equal(row.children[1].disabled, false);
   assert.equal(row.children[1].ariaLabel, "Open community.test");
@@ -34,16 +34,28 @@ test("launch always stays on Home and checks saved sessions before enabling chat
   assert.equal(state.calls.at(-1).name, "selectSite");
 });
 
-test("expired sessions are not selectable and authentication stays available", async () => {
+test("expired sessions offer login without expanding or prefilling the new-site form", async () => {
   const state = picker();
   state.context.tiny.api.call = async (name) => name === "startup"
     ? { sites: [{ origin: "https://community.test", name: "community.test" }] }
     : { status: "expired" };
   await state.timers[0].callback();
   const row = state.elements["session-list"].children[0];
-  assert.equal(row.children[1].disabled, true);
-  assert.equal(row.children[0].children[1].children[0].textContent, "Authenticate to reconnect");
+  assert.equal(row.children[1].disabled, false);
+  assert.equal(row.children[1].textContent, "Log in");
+  assert.equal(row.children[0].children[1].children[0].textContent, "Re-authenticate with this site");
   assert.equal(state.destinations.length, 0);
+  let address;
+  state.context.tiny.api.call = async (name, payload) => {
+    assert.equal(name, "browserLogin");
+    address = payload.address;
+    return { name: "community.test", mode: "device", code: "ABCD-EFGH", interval: 5000, expiresIn: 600000 };
+  };
+  await row.children[1].click();
+  assert.equal(address, "https://community.test");
+  assert.equal(state.elements["add-site"].open, false);
+  assert.equal(state.elements.address.value, "");
+  assert.equal(state.elements["device-login"].hidden, false);
 });
 
 test("picker displays device code, polls sequentially and stops after cancellation", async () => {
@@ -91,9 +103,76 @@ test("picker permits correcting a pasted code and clears it on success", async (
 });
 
 
-test("new installations show the authentication form without a collapsed section", async () => {
+test("new installations also keep Add Site collapsed until expanded", async () => {
   const state = picker();
   await state.timers[0].callback();
-  assert.equal(state.elements["add-site"].open, true);
+  assert.equal(state.elements["add-site"].open, false);
   assert.equal(state.elements.sessions.hidden, true);
+});
+
+
+test("opening Add Site clears previously typed addresses and messages do not expand it", async () => {
+  const state = picker();
+  state.context.tiny.api.call = async (name) => name === "startup"
+    ? { sites: [{ origin: "https://community.test", name: "community.test" }], address: "https://old.test", message: "Signed out" }
+    : { status: "expired" };
+  await state.timers[0].callback();
+  assert.equal(state.elements["add-site"].open, false);
+  assert.equal(state.elements.address.value, "");
+  state.elements.address.value = "previously-typed.test";
+  state.elements["add-site"].open = true;
+  state.elements["add-site"].toggle();
+  assert.equal(state.elements.address.value, "");
+});
+
+test("unreachable sites remain distinct from signed-out sessions", async () => {
+  const state = picker();
+  state.context.tiny.api.call = async (name) => name === "startup"
+    ? { sites: [{ origin: "https://community.test", name: "community.test" }] }
+    : { status: "unavailable" };
+  await state.timers[0].callback();
+  assert.equal(state.elements["session-list"].children[0].children[1].disabled, true);
+});
+
+
+test("saved sites and Add Site are mutually exclusive sections", async () => {
+  const state = picker({ origin: "https://community.test", name: "community.test" });
+  await state.timers[0].callback();
+  assert.equal(state.elements.sessions.open, true);
+  assert.equal(state.elements["add-site"].open, false);
+  state.elements["add-site"].open = true;
+  state.elements["add-site"].toggle();
+  assert.equal(state.elements.sessions.open, false);
+  state.elements.sessions.open = true;
+  state.elements.sessions.toggle();
+  assert.equal(state.elements["add-site"].open, false);
+});
+
+
+test("opening a saved site keeps the loading overlay until navigation, and failure restores Home", async () => {
+  const state = picker({ origin: "https://community.test", name: "community.test" });
+  await state.timers[0].callback();
+  const button = state.elements["session-list"].children[0].children[1];
+  await button.click();
+  assert.equal(state.elements["loading-overlay"].hidden, false);
+  assert.equal(state.elements["loading-title"].textContent, "Waiting for chat");
+  assert.equal(state.elements["home-content"].inert, true);
+  state.context.window.__devChatLoadFailed();
+  assert.equal(state.elements["loading-overlay"].hidden, true);
+  assert.equal(state.elements["home-content"].inert, false);
+  assert.equal(button.disabled, false);
+});
+
+test("browser approval overlay remains interactive and cancellation restores the picker", async () => {
+  const state = picker();
+  await state.timers[0].callback();
+  state.context.tiny.api.call = async name => name === "browserLogin"
+    ? { name: "community.test", mode: "device", code: "ABCD-EFGH", interval: 5000, expiresIn: 600000 } : {};
+  await state.elements.picker.submit({ preventDefault() {} });
+  assert.equal(state.elements["loading-title"].textContent, "Waiting for browser approval");
+  assert.equal(state.elements["loading-overlay"].hidden, false);
+  assert.equal(state.elements["device-login"].hidden, false);
+  await state.elements["cancel-login"].click();
+  assert.equal(state.elements["loading-overlay"].hidden, true);
+  assert.equal(state.elements["home-content"].inert, false);
 });

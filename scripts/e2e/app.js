@@ -12,7 +12,7 @@ config.api.origins = {
 let homePending = false;
 const app = await createApp({
   htmlPath: root + '/src/frontend/index.html', launcherPath: root + '/.e2e/launcher',
-  id: 'org.discourse.chat.e2e', title: 'Discourse Chat — isolated E2E', size: config.size,
+  id: 'org.discourse.chat.e2e', title: 'Discourse Chat App — isolated E2E', size: config.size,
   inject: await read(root + '/src/inject.js'), chrome: config.chrome,
   apiAccess: config.api, popups: 'external',
   api: { ...main.api, e2eReport(data, _app, caller) {

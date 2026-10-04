@@ -62,6 +62,7 @@ static void sock_write_line(const std::string &) {}
   } else {
     assert([path isEqualToString:@"/session/current.json"]);
     code = [@[@"expired", @"logout-expired"] containsObject:self.scenario] ? 403 : 200;
+    if ([@[@"expired-404", @"logout-expired-404"] containsObject:self.scenario]) code = 404;
     body = [self.scenario isEqualToString:@"invalid-json"] ? @{} : @{@"current_user": @{@"id": @42}};
   }
   NSHTTPURLResponse *response = [[[NSHTTPURLResponse alloc] initWithURL:url statusCode:code HTTPVersion:@"HTTP/1.1" headerFields:headers] autorelease];
@@ -71,7 +72,7 @@ static void sock_write_line(const std::string &) {}
 
 int main() {
   @autoreleasepool {
-    for (NSString *scenario in @[@"active", @"expired", @"invalid-json", @"login", @"bad-csrf", @"redirect", @"missing-redirect", @"logout", @"logout-expired", @"logout-failed"]) {
+    for (NSString *scenario in @[@"active", @"expired", @"expired-404", @"logout-expired-404", @"invalid-json", @"login", @"bad-csrf", @"redirect", @"missing-redirect", @"logout", @"logout-expired", @"logout-failed"]) {
       TestSession *request = [[TestSession alloc] init];
       TestCookieStore *store = [[TestCookieStore alloc] init];
       store.initial = @[[NSHTTPCookie cookieWithProperties:@{ NSHTTPCookieDomain: @"unrelated.test", NSHTTPCookiePath: @"/", NSHTTPCookieName: @"secret", NSHTTPCookieValue: @"unrelated" }]];
@@ -87,8 +88,8 @@ int main() {
       [request start];
       NSDate *deadline = [NSDate dateWithTimeIntervalSinceNow:5];
       while (!request.outcome && [deadline timeIntervalSinceNow] > 0) [[NSRunLoop mainRunLoop] runUntilDate:[NSDate dateWithTimeIntervalSinceNow:.01]];
-      NSString *expected = [@[@"active", @"login"] containsObject:scenario] ? @"active" : [@[@"expired", @"redirect", @"missing-redirect"] containsObject:scenario] ? @"expired" : @"unavailable";
-      if ([@[@"logout", @"logout-expired"] containsObject:scenario]) expected = @"logged-out";
+      NSString *expected = [@[@"active", @"login"] containsObject:scenario] ? @"active" : [@[@"expired", @"expired-404", @"redirect", @"missing-redirect"] containsObject:scenario] ? @"expired" : @"unavailable";
+      if ([@[@"logout", @"logout-expired", @"logout-expired-404"] containsObject:scenario]) expected = @"logged-out";
       assert([request.outcome isEqualToString:expected]);
       if ([expected isEqualToString:@"logged-out"]) {
         assert(store.deleted.count == 1);
@@ -103,6 +104,6 @@ int main() {
       if ([scenario isEqualToString:@"redirect"]) assert(request.paths.count == 2 && store.saved.count == 0);
       [request release]; [store release];
     }
-    puts("Native session checks passed (10 scenarios)");
+    puts("Native session checks passed (12 scenarios)");
   }
 }

@@ -5,13 +5,60 @@
   let loginVersion = 0;
   let pollTimer;
   let sessionVersion = 0;
+  let lastFocus;
+  let openingTimer;
   const sessionButtons = [];
   function setBusy(value) {
     busy = value;
     element("connect").disabled = value;
     element("address").disabled = value;
-    for (const button of sessionButtons) button.disabled = value || !button.active;
+    for (const button of sessionButtons) button.disabled = value || !button.ready;
   }
+  function showLoading(activity, detail = "") {
+    const overlay = element("loading-overlay");
+    const starting = overlay.hidden;
+    if (starting) lastFocus = document.activeElement;
+    element("loading-title").textContent = `Waiting for ${activity}`;
+    element("loading-detail").textContent = detail;
+    overlay.hidden = false;
+    element("home-content").inert = true;
+    element("title-bar").inert = true;
+    if (starting) element("loading-title").focus();
+  }
+  function hideLoading() {
+    clearTimeout(openingTimer);
+    element("loading-overlay").hidden = true;
+    element("home-content").inert = false;
+    element("title-bar").inert = false;
+    lastFocus?.focus();
+  }
+  function openingChat() {
+    clearTimeout(timer);
+    clearTimeout(pollTimer);
+    loginVersion++;
+    element("device-login").hidden = true;
+    element("paste-login").hidden = true;
+    element("authorization-code").value = "";
+    element("cancel-login").hidden = true;
+    element("status").textContent = "Opening chat…";
+    setBusy(true);
+    showLoading("chat");
+    clearTimeout(openingTimer);
+    openingTimer = setTimeout(() => resetBrowserLogin("Chat is taking longer than usual. Please retry."), 30000);
+  }
+  element("loading-overlay").addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !element("cancel-login").hidden) {
+      event.preventDefault();
+      element("cancel-login").click();
+    }
+    if (event.key !== "Tab") return;
+    const controls = [...element("loading-overlay").querySelectorAll("button, textarea")]
+      .filter((node) => !node.disabled && node.getClientRects().length);
+    const index = controls.indexOf(document.activeElement);
+    const next = event.shiftKey ? (index <= 0 ? controls.length - 1 : index - 1) : (index + 1) % controls.length;
+    event.preventDefault();
+    (controls[next] || element("loading-title")).focus();
+  });
   async function refreshSessions(sites) {
     const version = ++sessionVersion;
     sessionButtons.length = 0;
@@ -49,36 +96,65 @@
       identity.append(logo, label);
       row.append(identity, button);
       element("session-list").append(row);
+      function updateSession(state) {
+        button.active = state === "active";
+        button.needsLogin = state === "expired";
+        button.ready = button.active || button.needsLogin;
+        button.disabled = busy || !button.ready;
+        status.classList.toggle("is-active", button.active);
+        status.textContent = button.active ? "Signed in" : button.needsLogin
+          ? "Re-authenticate with this site" : "Site unavailable — retry later";
+        button.className = button.needsLogin ? "login-site" : "open-site";
+        button.ariaLabel = `${button.needsLogin ? "Log in to" : "Open"} ${site.name}`;
+        button.title = button.ariaLabel;
+        if (button.needsLogin) button.textContent = "Log in";
+      }
       button.addEventListener("click", async () => {
-        if (busy || !button.active) return;
+        if (busy || !button.ready) return;
+        if (button.needsLogin) {
+          element("add-site").open = false;
+          element("address").value = "";
+          return startBrowserLogin(site.origin);
+        }
         setBusy(true);
+        showLoading("chat", site.name);
         element("status").textContent = `Opening ${site.name}…`;
-        try { await tiny.api.call("selectSite", { address: site.origin }); }
+        try {
+          const selected = await tiny.api.call("selectSite", { address: site.origin });
+          if (selected === false) resetBrowserLogin("");
+          else openingChat();
+        }
         catch (error) {
-          element("add-site").open = true;
-          element("address").value = site.origin;
+          hideLoading();
+          setBusy(false);
           element("status").textContent = error.message;
-          button.active = false;
-          status.classList.toggle("is-active", false);
-          status.textContent = "Session unavailable — authenticate again";
-        } finally { setBusy(false); }
+          try {
+            const result = await tiny.api.call("checkSession", { address: site.origin });
+            if (version === sessionVersion) updateSession(result.status);
+          } catch { if (version === sessionVersion) updateSession("unavailable"); }
+        }
       });
       try {
         const result = await tiny.api.call("checkSession", { address: site.origin });
-        if (version !== sessionVersion) return;
-        button.active = result.status === "active";
-        status.classList.toggle("is-active", button.active);
-        button.disabled = busy || !button.active;
-        status.textContent = button.active ? "Signed in" : result.status === "expired" ? "Authenticate to reconnect" : "Site unavailable — retry later";
-      } catch { status.textContent = "Couldn’t check session"; }
+        if (version === sessionVersion) updateSession(result.status);
+      } catch { if (version === sessionVersion) updateSession("unavailable"); }
     }));
   }
+  window.__devChatSigningIn = () => {
+    if (!busy) return;
+    element("device-login").hidden = true;
+    element("paste-login").hidden = true;
+    showLoading("sign-in");
+  };
   window.__devChatLoadFailed = () => {
     resetBrowserLogin("Couldn’t load chat. Check your connection and retry.");
   };
   element("retry").addEventListener("click", () => startup());
   element("picker").addEventListener("submit", async (event) => {
     event.preventDefault();
+    return startBrowserLogin(element("address").value);
+  });
+  async function startBrowserLogin(address) {
     if (busy) return;
     setBusy(true);
     const version = ++loginVersion;
@@ -86,8 +162,9 @@
     element("address").disabled = true;
     element("cancel-login").hidden = false;
     element("status").textContent = "Opening your browser…";
+    showLoading("your browser");
     try {
-      const result = await tiny.api.call("browserLogin", { address: element("address").value });
+      const result = await tiny.api.call("browserLogin", { address });
       if (version !== loginVersion) return;
       element("device-login").hidden = result.mode !== "device";
       element("paste-login").hidden = result.mode !== "paste";
@@ -95,6 +172,7 @@
       element("status").textContent = result.mode === "device"
         ? `Approve sign-in to ${result.name} in your browser. This window will continue automatically.`
         : `Approve access to ${result.name} in your browser, then paste the authorization code below.`;
+      showLoading("browser approval", element("status").textContent);
       clearTimeout(timer);
       timer = setTimeout(async () => {
         resetBrowserLogin("Browser sign-in expired. Please try again.");
@@ -106,7 +184,7 @@
           try {
             const state = await tiny.api.call("pollBrowserLogin", {});
             if (version !== loginVersion) return;
-            if (state.complete) { resetBrowserLogin("Opening chat…"); return; }
+            if (state.complete) { openingChat(); return; }
             pollTimer = setTimeout(poll, result.interval);
           } catch (error) {
             if (version === loginVersion) resetBrowserLogin(error.message || "Browser sign-in failed. Please retry.");
@@ -117,7 +195,7 @@
     } catch (error) {
       if (version === loginVersion) resetBrowserLogin(error.message || "Couldn’t start browser sign-in.");
     }
-  });
+  }
   function resetBrowserLogin(message) {
     loginVersion++;
     clearTimeout(timer);
@@ -126,6 +204,7 @@
     element("paste-login").hidden = true;
     element("authorization-code").value = "";
     setBusy(false);
+    hideLoading();
     element("cancel-login").hidden = true;
     element("status").textContent = message;
   }
@@ -133,24 +212,35 @@
     event.preventDefault();
     const version = loginVersion;
     element("submit-code").disabled = true;
+    showLoading("sign-in");
     try {
       const state = await tiny.api.call("pasteBrowserLogin", { code: element("authorization-code").value });
-      if (version === loginVersion && state.complete) resetBrowserLogin("Opening chat…");
+      if (version === loginVersion && state.complete) openingChat();
     } catch (error) {
-      if (version === loginVersion) element("status").textContent = error.message || "Couldn’t verify the code. Please retry.";
+      if (version === loginVersion) {
+        element("status").textContent = error.message || "Couldn’t verify the code. Please retry.";
+        showLoading("authorization code", element("status").textContent);
+      }
     } finally { element("submit-code").disabled = false; }
   });
   element("cancel-login").addEventListener("click", async () => {
-    await tiny.api.call("cancelBrowserLogin", {});
-    resetBrowserLogin("Authentication cancelled.");
+    try { await tiny.api.call("cancelBrowserLogin", {}); }
+    finally { resetBrowserLogin("Authentication cancelled."); }
+  });
+  element("sessions").addEventListener("toggle", () => {
+    if (element("sessions").open) element("add-site").open = false;
+  });
+  element("add-site").addEventListener("toggle", () => {
+    if (!element("add-site").open) return;
+    element("sessions").open = false;
+    if (!busy) element("address").value = "";
   });
   async function startup() {
     try {
       const state = await tiny.api.call("startup", { url: location.href });
-      element("address").value = state.address || "";
-      const hasSites = !!state.sites?.length;
-      element("add-site").classList.toggle("collapsible", hasSites);
-      element("add-site").open = !hasSites || !!state.message;
+      element("address").value = "";
+      element("add-site").open = false;
+      element("sessions").open = !!state.sites?.length;
       element("status").textContent = state.message || "";
       element("retry").hidden = true;
       await refreshSessions(state.sites || []);

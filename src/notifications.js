@@ -46,7 +46,7 @@ export function createNotifications(site) {
     const title = typeof payload.title === "string" ? payload.title.slice(0, 160) : "New chat message";
     const body = typeof payload.body === "string" ? payload.body.slice(0, 500) : "";
     remember(destinations, id, destination);
-    const delivered = await app.notify({ id, title, body, subtitle: "Discourse Chat Wrapper", sound: true });
+    const delivered = await app.notify({ id, title, body, subtitle: "Discourse Chat App", sound: true });
     return { delivered: delivered !== false };
   }
 

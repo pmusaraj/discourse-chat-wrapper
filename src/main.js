@@ -60,6 +60,7 @@ async function openChat(next, app, revision) {
 }
 async function finishBrowserLogin(result, app, revision) {
   if (!result || revision !== siteRevision) return false;
+  app.eval("window.__devChatSigningIn?.()");
   // Establish and verify the WebKit session natively; never render an OTP form.
   const session = await sessionRequest(app, result.site.origin, result.token);
   if (revision !== siteRevision) return false;
@@ -178,7 +179,6 @@ export const api = {
     clearTimeout(logoutTimer);
     logoutPending = false;
     if (!success) { home(app, "Logout failed. Your session has been kept; you can retry from chat."); return false; }
-    rememberedSites = rememberedSites.filter((entry) => entry.origin !== site.origin);
     await app.store.set("sessionSites", rememberedSites.map((entry) => entry.origin));
     await app.store.set("activeSite", null);
     home(app, "You’re signed out.");
@@ -241,7 +241,7 @@ export async function onMenu(id, app) {
   }
   if (id === "dev-test-notification") {
     await app.permissions.request("notifications");
-    setTimeout(() => app.notify({ id: `dev-test-${Date.now()}`, title: "Discourse Chat",
+    setTimeout(() => app.notify({ id: `dev-test-${Date.now()}`, title: "Discourse Chat App",
       body: "Desktop notifications are working.", sound: true }), 5000);
   }
   if (["dev-remove-all", "dev-logout-all", "dev-logout-current"].includes(id)) {
@@ -307,9 +307,9 @@ export function onNavigate({ kind, url, window: windowId = "main" }, app) {
   }
   if (kind === "start") {
     notifications.setReady(false);
-    app.setTitle("Discourse Chat Wrapper — Loading…");
+    app.setTitle("Discourse Chat App — Loading…");
   }
-  if (kind === "finish") app.setTitle("Discourse Chat Wrapper");
+  if (kind === "finish") app.setTitle("Discourse Chat App");
   if (kind === "fail" || kind === "crash") {
     // Ignore cancellation/failure events from the document we just left for Home.
     if (site && (kind === "crash" || url?.startsWith(site.origin + "/"))) {

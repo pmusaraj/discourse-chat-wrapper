@@ -1,4 +1,4 @@
-# Discourse Chat Wrapper
+# Discourse Chat App
 
 A macOS webview app for one Discourse chat site at a time. Requires macOS 15+
 and Apple Silicon for the current local build.
@@ -14,7 +14,7 @@ Build and open the standalone app:
 
 ```sh
 npm run build
-open "dist/Discourse Chat Wrapper.app"
+open "dist/Discourse Chat App.app"
 ```
 
 The runtime is pinned to TinyJS v0.42.3. Setup/build apply a small, reproducible
@@ -33,19 +33,24 @@ signing. They are not notarized for distribution. The bundle identifier remains
 
 Every launch starts on Home in the main webview. Saved sites appear with a live
 session status. **Open** becomes available only after the server confirms
-a valid session; selecting the site checks again. Expired and unreachable sites
-remain disabled. Sessions are checked automatically whenever Home opens.
+a valid session; selecting the site checks again. Expired sessions show **Log in**
+and “Re-authenticate with this site”; Log in starts browser authentication for
+that site. Unreachable sites remain disabled. Sessions are checked automatically whenever Home opens.
 
 Enter a site's main HTTPS address and click **Authenticate** to authenticate in
 the default browser. Subfolder installations are not supported. This is the only
 login option. Existing browser cookies, passkeys, and SSO work in the browser.
-When sites are saved, expand **Add a new chat site** to reveal the form.
+Expand **Add a new site** to reveal a blank address form. It starts collapsed
+and clears previously entered addresses whenever reopened. Reauthenticating a
+saved site keeps this form collapsed; approval controls appear separately.
+**Your sites** and **Add a new site** are mutually exclusive disclosure sections.
+Your sites starts expanded when saved sites exist.
 There is no secondary picker window or Sites menu.
 
 Use **Chat > Home** (Cmd+1) to return to the intro screen without logging out.
 **Chat > Desktop Notifications** toggles the saved notification preference.
 Authentication errors appear in the webview. **Chat > Log Out** ends the selected WebKit session,
-removes the saved site, and returns Home. Failed logout preserves the session
+retains the saved site for reauthentication, and returns Home. Failed logout preserves the session
 and reports an error on Home. Logout follows the site’s session policy and does not clear the external browser’s
 cookies or an identity provider’s session.
 
@@ -195,3 +200,12 @@ ensure no test is running, remove the stale `.e2e/run.lock` directory, then run:
 ```sh
 npm run test:e2e:cleanup
 ```
+
+
+Home uses right-aligned chevrons for its disclosure sections. During browser
+approval, sign-in, and opening chat, a full-window blurred overlay displays a
+pulse and activity-specific status. Approval codes, paste input, and Cancel stay
+above the blur. The pulse respects reduced-motion preferences. The loading
+presentation continues in the chat webview until the authenticated chat UI is
+ready. Renaming the app to Discourse Chat App preserves its bundle identifier
+and existing saved sessions.

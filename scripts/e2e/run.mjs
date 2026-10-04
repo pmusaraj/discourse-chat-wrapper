@@ -142,6 +142,8 @@ try {
   await waitEvent('loaded');
   await waitFor(`document.querySelector('#connect') && !document.querySelector('#connect').disabled`);
   await snapshot('home');
+  await evaluate(`(()=>{document.querySelector('#add-site').open=true;return true;})()`);
+  await waitFor(`document.querySelector('#address').getBoundingClientRect().height > 0`);
   await evaluate(`(()=>{document.querySelector('#address').value=${JSON.stringify(origin)};return true;})()`);
   await snapshot('site-address-entered');
   await evaluate(`(()=>{document.querySelector('#picker').requestSubmit();return true;})()`);
@@ -181,6 +183,8 @@ try {
   await snapshot('saved-session');
   await evaluate(`(()=>{document.querySelector('#add-site').open=true;return true;})()`);
   await snapshot('add-another-site');
+  await evaluate(`(()=>{document.querySelector('#sessions').open=true;return true;})()`);
+  await waitFor(`document.querySelector('#session-list button').getBoundingClientRect().height > 0`);
   await evaluate(`(()=>{document.querySelector('#session-list button').click();return true;})()`);
   await waitFor(`location.origin === ${JSON.stringify(origin)} && window.Discourse?.__container__?.lookup('service:current-user')?.username === 'chat_wrapper_e2e'`);
   await waitFor(`document.querySelector('.main-chat-outlet, #main-chat-outlet') && getComputedStyle(document.body).visibility !== 'hidden'`);
