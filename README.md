@@ -40,8 +40,10 @@ that site. Unreachable sites remain disabled. Sessions are checked automatically
 Enter a site's main HTTPS address and click **Authenticate** to authenticate in
 the default browser. Subfolder installations are not supported. This is the only
 login option. Existing browser cookies, passkeys, and SSO work in the browser.
-Expand **Add a new site** to reveal a blank address form. It starts collapsed
-and clears previously entered addresses whenever reopened. Reauthenticating a
+With saved sites, expand **Add a new site** to reveal an address form prefilled
+with `https://`. It starts collapsed and resets to `https://` whenever reopened.
+Without saved sites, Home shows introductory copy and expands **Add your first site**
+automatically. Addresses entered without a scheme receive the `https://` prefix. Reauthenticating a
 saved site keeps this form collapsed; approval controls appear separately.
 **Your sites** and **Add a new site** are mutually exclusive disclosure sections.
 Your sites starts expanded when saved sites exist.

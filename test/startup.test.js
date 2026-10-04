@@ -26,7 +26,7 @@ test("launch always stays on Home and checks saved sessions before enabling chat
   await state.timers[0].callback();
   assert.equal(state.destinations.length, 0);
   assert.equal(state.elements["add-site"].open, false);
-  assert.equal(state.elements.address.value, "");
+  assert.equal(state.elements.address.value, "https://");
   const row = state.elements["session-list"].children[0];
   assert.equal(row.children[1].disabled, false);
   assert.equal(row.children[1].ariaLabel, "Open community.test");
@@ -54,7 +54,7 @@ test("expired sessions offer login without expanding or prefilling the new-site 
   await row.children[1].click();
   assert.equal(address, "https://community.test");
   assert.equal(state.elements["add-site"].open, false);
-  assert.equal(state.elements.address.value, "");
+  assert.equal(state.elements.address.value, "https://");
   assert.equal(state.elements["device-login"].hidden, false);
 });
 
@@ -103,11 +103,14 @@ test("picker permits correcting a pasted code and clears it on success", async (
 });
 
 
-test("new installations also keep Add Site collapsed until expanded", async () => {
+test("empty installations show the introduction and expand Add your first site", async () => {
   const state = picker();
   await state.timers[0].callback();
-  assert.equal(state.elements["add-site"].open, false);
+  assert.equal(state.elements["add-site"].open, true);
   assert.equal(state.elements.sessions.hidden, true);
+  assert.equal(state.elements.intro.hidden, false);
+  assert.equal(state.elements["add-site-label"].textContent, "Add your first site");
+  assert.equal(state.elements.address.value, "https://");
 });
 
 
@@ -118,11 +121,11 @@ test("opening Add Site clears previously typed addresses and messages do not exp
     : { status: "expired" };
   await state.timers[0].callback();
   assert.equal(state.elements["add-site"].open, false);
-  assert.equal(state.elements.address.value, "");
+  assert.equal(state.elements.address.value, "https://");
   state.elements.address.value = "previously-typed.test";
   state.elements["add-site"].open = true;
   state.elements["add-site"].toggle();
-  assert.equal(state.elements.address.value, "");
+  assert.equal(state.elements.address.value, "https://");
 });
 
 test("unreachable sites remain distinct from signed-out sessions", async () => {
@@ -139,6 +142,8 @@ test("saved sites and Add Site are mutually exclusive sections", async () => {
   const state = picker({ origin: "https://community.test", name: "community.test" });
   await state.timers[0].callback();
   assert.equal(state.elements.sessions.open, true);
+  assert.equal(state.elements.intro.hidden, true);
+  assert.equal(state.elements["add-site-label"].textContent, "Add a new site");
   assert.equal(state.elements["add-site"].open, false);
   state.elements["add-site"].open = true;
   state.elements["add-site"].toggle();

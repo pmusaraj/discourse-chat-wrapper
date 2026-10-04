@@ -113,7 +113,7 @@
         if (busy || !button.ready) return;
         if (button.needsLogin) {
           element("add-site").open = false;
-          element("address").value = "";
+          element("address").value = "https://";
           return startBrowserLogin(site.origin);
         }
         setBusy(true);
@@ -233,14 +233,17 @@
   element("add-site").addEventListener("toggle", () => {
     if (!element("add-site").open) return;
     element("sessions").open = false;
-    if (!busy) element("address").value = "";
+    if (!busy) element("address").value = "https://";
   });
   async function startup() {
     try {
       const state = await tiny.api.call("startup", { url: location.href });
-      element("address").value = "";
-      element("add-site").open = false;
-      element("sessions").open = !!state.sites?.length;
+      element("address").value = "https://";
+      const hasSites = !!state.sites?.length;
+      element("intro").hidden = hasSites;
+      element("add-site-label").textContent = hasSites ? "Add a new site" : "Add your first site";
+      element("sessions").open = hasSites;
+      element("add-site").open = !hasSites;
       element("status").textContent = state.message || "";
       element("retry").hidden = true;
       await refreshSessions(state.sites || []);

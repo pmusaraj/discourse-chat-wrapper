@@ -97,18 +97,17 @@
       <h1 id="heading">Chat on Discourse</h1>
     </div>
     <div class="home-card">
-    <p id="intro">Use Discourse Chat in this dedicated window. Supports multiple communities.</p>
+    <p id="intro" hidden>Chat in your favourite Discourse communities using this dedicated minimal app. Supports multiple communities and desktop notifications for each (while the community is active).</p>
     <details id="sessions" class="collapsible" name="home-sections" hidden>
       <summary>Your sites</summary>
       <div id="session-list"></div>
     </details>
     <details id="add-site" class="collapsible" name="home-sections">
-      <summary>Add a new site</summary>
+      <summary id="add-site-label">Add a new site</summary>
     <form id="picker">
       <label for="address">Discourse site address</label>
-      <input id="address" type="text" inputmode="url" placeholder="community.example.com" autocomplete="url" autocapitalize="none" spellcheck="false" required>
+      <input id="address" type="text" inputmode="url" value="https://" placeholder="https://community.example.com" autocomplete="url" autocapitalize="none" spellcheck="false" required>
       <button id="connect" type="submit">Authenticate</button>
-      <p class="hint">Use the site’s main HTTPS address. One site is open at a time.</p>
 
     </form>
     </details>
