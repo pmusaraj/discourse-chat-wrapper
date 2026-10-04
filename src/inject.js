@@ -95,7 +95,7 @@
         @media (prefers-color-scheme:dark) { :host { --background:#1b1a18; --text:#f2f1ee; --muted:#b8b6b2; --accent:#307df0; } }
         @media (prefers-reduced-motion:reduce) { :host { transition:none; } .pulse { animation:none; } }
       </style>
-      <section role="status" aria-live="polite"><span class="pulse" aria-hidden="true"></span><h1>Waiting for chat</h1>
+      <section role="status" aria-live="polite"><span class="pulse" aria-hidden="true"></span><h1>Loading this site’s chat interface</h1>
         <p></p>
         <div hidden><button id="retry">Retry</button><button id="home">Home</button></div>
       </section>`;

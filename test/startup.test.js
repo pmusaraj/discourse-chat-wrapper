@@ -155,7 +155,7 @@ test("opening a saved site keeps the loading overlay until navigation, and failu
   const button = state.elements["session-list"].children[0].children[1];
   await button.click();
   assert.equal(state.elements["loading-overlay"].hidden, false);
-  assert.equal(state.elements["loading-title"].textContent, "Waiting for chat");
+  assert.equal(state.elements["loading-title"].textContent, "Loading this site’s chat interface");
   assert.equal(state.elements["home-content"].inert, true);
   state.context.window.__devChatLoadFailed();
   assert.equal(state.elements["loading-overlay"].hidden, true);

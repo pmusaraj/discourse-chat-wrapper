@@ -18,7 +18,7 @@
     const overlay = element("loading-overlay");
     const starting = overlay.hidden;
     if (starting) lastFocus = document.activeElement;
-    element("loading-title").textContent = `Waiting for ${activity}`;
+    element("loading-title").textContent = activity;
     element("loading-detail").textContent = detail;
     overlay.hidden = false;
     element("home-content").inert = true;
@@ -42,7 +42,7 @@
     element("cancel-login").hidden = true;
     element("status").textContent = "Opening chat…";
     setBusy(true);
-    showLoading("chat");
+    showLoading("Loading this site’s chat interface");
     clearTimeout(openingTimer);
     openingTimer = setTimeout(() => resetBrowserLogin("Chat is taking longer than usual. Please retry."), 30000);
   }
@@ -117,7 +117,7 @@
           return startBrowserLogin(site.origin);
         }
         setBusy(true);
-        showLoading("chat", site.name);
+        showLoading("Loading this site’s chat interface", site.name);
         element("status").textContent = `Opening ${site.name}…`;
         try {
           const selected = await tiny.api.call("selectSite", { address: site.origin });
@@ -144,7 +144,7 @@
     if (!busy) return;
     element("device-login").hidden = true;
     element("paste-login").hidden = true;
-    showLoading("sign-in");
+    showLoading("Waiting for sign-in");
   };
   window.__devChatLoadFailed = () => {
     resetBrowserLogin("Couldn’t load chat. Check your connection and retry.");
@@ -162,7 +162,7 @@
     element("address").disabled = true;
     element("cancel-login").hidden = false;
     element("status").textContent = "Opening your browser…";
-    showLoading("your browser");
+    showLoading("Waiting for your browser");
     try {
       const result = await tiny.api.call("browserLogin", { address });
       if (version !== loginVersion) return;
@@ -172,7 +172,7 @@
       element("status").textContent = result.mode === "device"
         ? `Approve sign-in to ${result.name} in your browser. This window will continue automatically.`
         : `Approve access to ${result.name} in your browser, then paste the authorization code below.`;
-      showLoading("browser approval", element("status").textContent);
+      showLoading("Waiting for browser approval", element("status").textContent);
       clearTimeout(timer);
       timer = setTimeout(async () => {
         resetBrowserLogin("Browser sign-in expired. Please try again.");
@@ -212,14 +212,14 @@
     event.preventDefault();
     const version = loginVersion;
     element("submit-code").disabled = true;
-    showLoading("sign-in");
+    showLoading("Waiting for sign-in");
     try {
       const state = await tiny.api.call("pasteBrowserLogin", { code: element("authorization-code").value });
       if (version === loginVersion && state.complete) openingChat();
     } catch (error) {
       if (version === loginVersion) {
         element("status").textContent = error.message || "Couldn’t verify the code. Please retry.";
-        showLoading("authorization code", element("status").textContent);
+        showLoading("Waiting for authorization code", element("status").textContent);
       }
     } finally { element("submit-code").disabled = false; }
   });
