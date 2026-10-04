@@ -1,0 +1,16 @@
+{
+  "name": "discourse-chat-tinyjs-poc",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "sh scripts/setup-runtime.sh",
+    "start": "sh scripts/build-runtime.sh && ./.runtime/tinyjs dev",
+    "build": "sh scripts/build-macos.sh",
+    "test": "node --test",
+    "test:e2e": "node scripts/e2e/run.mjs",
+    "test:e2e:cleanup": "node scripts/e2e/run.mjs --cleanup"
+  },
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
+}

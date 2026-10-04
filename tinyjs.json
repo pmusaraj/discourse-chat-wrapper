@@ -1,0 +1,49 @@
+{
+  "name": "Discourse Chat Wrapper",
+  "title": "Discourse Chat Wrapper",
+  "id": "org.discourse.dev.chat.tinyjs.poc",
+  "version": "0.2.0",
+  "minTinyjsVersion": "0.42.3",
+  "size": "1100x780",
+  "inject": "src/inject.js",
+  "api": {
+    "origins": {
+      "https://*": [
+        "siteContext",
+        "chatAlert",
+        "chatListenerReady",
+        "openBrowser",
+        "logoutResult",
+        "win.startDrag",
+        "win.zoom",
+        "returnHome",
+        "sessionExpired"
+      ],
+      "file://*": [
+        "startup",
+        "selectSite",
+        "win.startDrag",
+        "win.zoom",
+        "browserLogin",
+        "cancelBrowserLogin",
+        "pollBrowserLogin",
+        "pasteBrowserLogin",
+        "checkSession",
+        "siteIcon"
+      ]
+    }
+  },
+  "chrome": {
+    "frame": false,
+    "windowControls": true,
+    "windowControlsPos": {
+      "x": 18,
+      "y": 17
+    }
+  },
+  "popups": "external",
+  "downloads": "ask",
+  "browserAccelerators": true,
+  "contextMenu": true,
+  "icon": "assets/discourse-chat.png"
+}

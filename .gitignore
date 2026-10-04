@@ -1,0 +1,10 @@
+.runtime/
+.build/
+.tinyjs/
+dist/
+.DS_Store
+screenshots/
+node_modules/
+.e2e/
+.env*
+!.env.example
